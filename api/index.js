@@ -1,39 +1,37 @@
-import fetch from "node-fetch";
+import https from "https";
+import http from "http";
 
 export default async function handler(req, res) {
-  const target = "https://black-n8n.onrender.com"; // your n8n instance URL
-  const url = `${target}${req.url}`;
+  const target = "https://black-n8n.onrender.com"; // change if needed
+  const url = new URL(req.url, target);
 
-  try {
-    const response = await fetch(url, {
+  const client = url.protocol === "https:" ? https : http;
+
+  const proxyReq = client.request(
+    url,
+    {
       method: req.method,
       headers: {
-        ...Object.fromEntries(
-          Object.entries(req.headers).filter(
-            ([key]) =>
-              !["host", "x-forwarded-for", "x-real-ip"].includes(key.toLowerCase())
-          )
-        ),
+        ...req.headers,
+        host: url.host,
       },
-      body: req.method !== "GET" && req.method !== "HEAD" ? req.body : undefined,
-    });
+    },
+    (proxyRes) => {
+      // remove headers that block iframe
+      delete proxyRes.headers["x-frame-options"];
+      delete proxyRes.headers["content-security-policy"];
+      delete proxyRes.headers["content-security-policy-report-only"];
 
-    // Copy headers except the frame blockers
-    const headers = {};
-    response.headers.forEach((value, key) => {
-      if (
-        !["x-frame-options", "content-security-policy", "content-security-policy-report-only"].includes(
-          key.toLowerCase()
-        )
-      ) {
-        headers[key] = value;
-      }
-    });
+      res.writeHead(proxyRes.statusCode || 200, proxyRes.headers);
+      proxyRes.pipe(res, { end: true });
+    }
+  );
 
-    res.writeHead(response.status, headers);
-    const buffer = await response.arrayBuffer();
-    res.end(Buffer.from(buffer));
-  } catch (err) {
-    res.status(500).send(`Proxy error: ${err.message}`);
-  }
+  req.pipe(proxyReq, { end: true });
+
+  proxyReq.on("error", (err) => {
+    console.error("Proxy error:", err);
+    res.statusCode = 500;
+    res.end("Proxy failed: " + err.message);
+  });
 }
