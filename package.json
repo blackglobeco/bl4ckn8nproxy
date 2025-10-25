@@ -1,7 +1,6 @@
 {
   "name": "n8n-proxy",
   "version": "1.0.0",
-  "main": "api/index.js",
   "type": "module",
   "dependencies": {
     "http-proxy-middleware": "^3.0.0"
