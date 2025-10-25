@@ -1,14 +1,9 @@
 {
-  "name": "n8n-proxy-vercel",
+  "name": "n8n-proxy",
   "version": "1.0.0",
-  "private": true,
+  "main": "api/index.js",
   "type": "module",
   "dependencies": {
-    "express": "^4.19.2",
     "http-proxy-middleware": "^3.0.0"
-  },
-  "scripts": {
-    "start": "node api/index.js"
   }
 }
-
