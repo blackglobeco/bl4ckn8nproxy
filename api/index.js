@@ -1,21 +1,20 @@
 import { createProxyMiddleware } from "http-proxy-middleware";
 import { Buffer } from "buffer";
 
-const target = "https://black-n8n.onrender.com";
+const target = "https://black-n8n.onrender.com"; // your actual n8n URL
 
 const proxy = createProxyMiddleware({
   target,
   changeOrigin: true,
-  selfHandleResponse: true, // so we can modify HTML responses
+  selfHandleResponse: true,
   onProxyRes: async (proxyRes, req, res) => {
     const chunks = [];
-
     proxyRes.on("data", (chunk) => chunks.push(chunk));
     proxyRes.on("end", () => {
       let body = Buffer.concat(chunks);
-
-      // Handle text responses only
       const contentType = proxyRes.headers["content-type"] || "";
+
+      // Rewrite links in HTML
       if (contentType.includes("text/html")) {
         body = body
           .toString("utf8")
@@ -29,12 +28,12 @@ const proxy = createProxyMiddleware({
       delete proxyRes.headers["cross-origin-embedder-policy"];
       delete proxyRes.headers["cross-origin-resource-policy"];
 
-      // Allow CORS
+      // Allow embedding + CORS
       res.setHeader("Access-Control-Allow-Origin", "*");
       res.setHeader("Access-Control-Allow-Headers", "*");
       res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
 
-      // Copy other headers
+      // Copy all other headers
       for (const [key, value] of Object.entries(proxyRes.headers)) {
         if (value) res.setHeader(key, value);
       }
@@ -47,8 +46,6 @@ const proxy = createProxyMiddleware({
 
 export default function handler(req, res) {
   proxy(req, res, (err) => {
-    if (err) {
-      res.status(500).send("Proxy Error: " + err.message);
-    }
+    if (err) res.status(500).send("Proxy error: " + err.message);
   });
 }
