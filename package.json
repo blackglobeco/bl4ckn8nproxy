@@ -1,5 +1,5 @@
 {
-  "name": "n8n-proxy",
+  "name": "n8n-html-proxy",
   "version": "1.0.0",
   "type": "module",
   "dependencies": {
